@@ -8,6 +8,7 @@ A sandbox for collecting tiktok metadata
 - Errors are logged, not fatal
 - Slow > blocked
 
+
 ## Folder structure
 ```
 tiktok-metadata-collector/
@@ -47,6 +48,7 @@ tiktok-metadata-collector/
 └── logs/
     └── runs.log
 ```
+
 
 ## How to Run the TikTok User Metadata Collector
 
