@@ -14,13 +14,13 @@ yt-dlp library
 ## General flow
 - <b>STEP 1:</b> Create a seed file
 - - Stored as .txt
-- - One username or hashtag per row
+- - One username per row
 - - Save in seeds/yyyy-mm-dd
-- <b>STEP 2:</b> Run collect_user_metadata.py or collect_hashtag_metadata.py
+- <b>STEP 2:</b> Run collect_user_metadata.py
 - - Uses the output from step 1 
-- - Saves the metadata for each user or hashtag as json in outputs/raw
+- - Saves the metadata for each user as json in outputs/raw
 - <b>STEP 3:</b> Run collect_video_metadata_from_ids.py
-- - Takes the user or hashtag metadata, extracts the Video IDs, and pulls the metadata for those videos
+- - Takes the user metadata, extracts the Video IDs, and pulls the metadata for those videos
 - - Saves the output from the run (metadata for each video) as json in outputs/enriched/YYYY-MM-DD
 - <b>STEP 4:</b> Convert enriched JSON to CSV
 - - user_metadata_to_csv.py

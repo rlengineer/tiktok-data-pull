@@ -1,0 +1,105 @@
+name: Run TikTok Metadata Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      seed_file:
+        description: "Path to seed file (relative to repo root)"
+        required: true
+      max_videos:
+        description: "Max videos per user"
+        required: false
+        default: "30"
+      sleep:
+        description: "Sleep seconds"
+        required: false
+        default: "6"
+      jitter:
+        description: "Jitter seconds"
+        required: false
+        default: "3"
+      max_total_errors:
+        description: "Max total video errors"
+        required: false
+        default: "20"
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install "yt-dlp[default,curl-cffi]" pandas
+
+      - name: Initialize run folders
+        id: vars
+        run: |
+          RUN_DATE=$(date -u +%F)
+          RUN_TS=$(date -u +%Y%m%d_%H%M%S)
+
+          RAW_OUT="outputs/raw/${RUN_DATE}"
+          ENRICHED_OUT="outputs/enriched/${RUN_DATE}"
+          CSV_OUT="outputs/csv_out/${RUN_DATE}"
+
+          mkdir -p "$RAW_OUT" "$ENRICHED_OUT" "$CSV_OUT"
+
+          echo "raw_out=$RAW_OUT" >> $GITHUB_OUTPUT
+          echo "enriched_out=$ENRICHED_OUT" >> $GITHUB_OUTPUT
+          echo "csv_out=$CSV_OUT" >> $GITHUB_OUTPUT
+          echo "run_ts=$RUN_TS" >> $GITHUB_OUTPUT
+
+      - name: Step 2 — Collect user metadata
+        run: |
+          python src/collect_user_metadata.py \
+            --seed "${{ github.event.inputs.seed_file }}" \
+            --out "${{ steps.vars.outputs.raw_out }}" \
+            --max-videos "${{ github.event.inputs.max_videos }}" \
+            --sleep "${{ github.event.inputs.sleep }}" \
+            --jitter "${{ github.event.inputs.jitter }}"
+
+      - name: Locate most recent raw JSON
+        id: raw_json
+        run: |
+          FILE=$(ls -t ${{ steps.vars.outputs.raw_out }}/*.json | head -n 1)
+          echo "file=$FILE" >> $GITHUB_OUTPUT
+
+      - name: Step 3 — Collect video metadata
+        run: |
+          python src/collect_video_metadata_from_ids.py \
+            --input "${{ steps.raw_json.outputs.file }}" \
+            --out "${{ steps.vars.outputs.enriched_out }}" \
+            --write-per-video \
+            --no-comments \
+            --sleep "${{ github.event.inputs.sleep }}" \
+            --jitter "${{ github.event.inputs.jitter }}" \
+            --max-total-errors "${{ github.event.inputs.max_total_errors }}"
+
+      - name: Step 4 — Convert user metadata to CSV
+        run: |
+          python src/user_metadata_to_csv.py \
+            --in "${{ steps.raw_json.outputs.file }}" \
+            --out "${{ steps.vars.outputs.csv_out }}/user_data"
+
+      - name: Step 4b — Convert video metadata to CSV
+        run: |
+          python src/video_metadata_to_csv.py \
+            --in "${{ steps.vars.outputs.enriched_out }}" \
+            --out "${{ steps.vars.outputs.csv_out }}/video_data"
+
+      - name: Upload outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: tiktok-run-${{ steps.vars.outputs.run_ts }}
+          path: outputs/
