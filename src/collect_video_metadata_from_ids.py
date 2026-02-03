@@ -1,25 +1,20 @@
 #!/usr/bin/env python3
 """
-Given a JSON file produced by your seed-user run (containing results[].videos[].video_id/url),
-fetch per-video metadata using yt-dlp.
+collect_video_metadata_from_ids.py
 
-- Always collects video metadata (no download).
-- Attempts comment extraction via --write-comments, but TikTok often blocks/doesn't expose comments.
+Purpose:
+- General: Extracts the VideoIDs from output of src/collect_user_metadata.py and fetches metadata for each video.
+- Tiktok comments: Can attempt comment extraction via --write-comments, but this often leads to ERROR (functionality can be turned on and off)
+- Reruns: If running on an input produces a partial output (i.e., if you stop early due to multiple ERRORS), the script will skip video IDs that it has already aprsed metadata for, as long as you are in the same folder.
+- ERROR support: To handle bot dection, by default, the script stops running after 5 consecutive ERRORS. This is a parameter that can be modified, or set to 0 to be disabled (not recommended). 
 
-Resume support:
-- When re-running after an error/partial completion, the script can skip video IDs that
-  already have per-video JSON files in <out_dir>/per_video/.
-- This prevents wasting time re-fetching metadata you've already collected.
 
-Stop-early support:
-- By default stops after 5 consecutive errors (likely rate-limited/blocked).
-- Optionally stops after N total errors.
 
 Outputs:
 - One combined JSON: <out_dir>/videos_enriched_<timestamp>.json
 - Optionally per-video JSON files: <out_dir>/per_video/<video_id>.json
 
-Usage:
+Command line examples:
   python collect_video_metadata_from_ids.py \
     --input outputs/raw/2026-02-01/tiktok_seed_users_20260201_214501.json \
     --out outputs/enriched/2026-02-01 \

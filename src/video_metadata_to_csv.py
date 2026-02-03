@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """
-enriched_videos_to_csv.py
+video_metadata_to_csv.py
+
+Purpose:
+Converts video metadata from JSON to CSV format (to reduce storage space)
+Specifically designed to process the ouput from src/collect_video_metadata_from_ids.py
 
 Supports:
 1) Batch enriched JSON:
@@ -9,13 +13,18 @@ Supports:
 2) Single-video JSON files:
    { video_id, url, username, scraped_at, yt_dlp:{...} }
 
+Input:
+batch-style files - ../outputs/enriched/2026-02-02/videos_enriched_20260202_185751.json 
+a folder of per-video JSONs - ../outputs/enriched/2026-02-01/per_video
+
 Output:
-  - videos_enriched_<timestamp>.csv
+  - ../outputs/csv_out/video_data/videos_enriched_<timestamp>.csv
 
 Timestamp priority:
 1) run_started_at (batch)
 2) earliest scraped_at (folder mode)
 3) current time
+
 """
 
 from __future__ import annotations

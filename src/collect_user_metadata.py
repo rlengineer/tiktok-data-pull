@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 """
-Collect TikTok metadata for a seed list of usernames (profile + last N videos)
-and write one JSON output file per run.
+collect_user_metadata.py
 
-Data source: yt-dlp TikTok extractor (unofficial; can break / be rate limited).
-No media downloaded; metadata only.
+Purpose:
+- Step 1 of the process
+- Collects TikTok metadata based on a given seed list of usernames 
+- Collects metadata for user profile + last N videos - gives the video ID, which powers src/collect_video_metadata_from_ids.py
+- Output is one json file per run
+- Uses yt-dlp library
+- No media downloaded; metadata only
 
-Usage:
-  python collect_user_metadata.py \
-      --seed seed_users.txt \
-      --out outputs \
-      --max-videos 20 \
-      --sleep 2.0 \
-      --jitter 1.5
+Input:
+- A txt file with one TikTokusername per line
+- seeds/yyy-mm-dd/file_name.txt
 
-Notes:
-- TikTok is aggressive about bot detection. Increase sleep/jitter if blocked.
-- Some fields may be missing depending on extractor output.
+Note:
+- Increase sleep / jitter if repeatedly getting ERRORS, as repeated ERROR can indicate bot detection
+
 """
 
 import argparse
@@ -31,10 +31,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-
-# ---------------------------
-# Helpers
-# ---------------------------
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -56,7 +52,6 @@ def safe_str(x: Any) -> Optional[str]:
 def extract_hashtags(text: Optional[str]) -> List[str]:
     if not text:
         return []
-    # hashtags can include underscores; keep it simple and lower them
     tags = re.findall(r"#([A-Za-z0-9_]+)", text)
     # de-dup while preserving order
     seen = set()
@@ -67,11 +62,6 @@ def extract_hashtags(text: Optional[str]) -> List[str]:
             seen.add(tl)
             out.append(tl)
     return out
-
-
-# ---------------------------
-# yt-dlp runner
-# ---------------------------
 
 @dataclass
 class YtDlpResult:
@@ -121,7 +111,6 @@ def run_ytdlp_json(
 
     stderr = (p.stderr or "").strip()
     if p.returncode != 0:
-        # Keep stderr short-ish; TikTok errors can be long
         short_err = stderr[-2000:] if len(stderr) > 2000 else stderr
         return YtDlpResult(raw=None, error=short_err or "yt-dlp failed", returncode=p.returncode, stderr=stderr)
 
@@ -131,10 +120,6 @@ def run_ytdlp_json(
     except json.JSONDecodeError:
         return YtDlpResult(raw=None, error="failed to parse yt-dlp JSON output", returncode=2, stderr=stderr)
 
-
-# ---------------------------
-# Normalization to stable schema
-# ---------------------------
 
 def normalize_profile(username: str, raw: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -177,7 +162,7 @@ def normalize_video_entry(e: Dict[str, Any], fallback_username: str) -> Dict[str
         "duration_sec": safe_int(e.get("duration")),
         "uploader": uploader,
         "uploader_id": safe_str(e.get("uploader_id")),
-        # engagement (may be None):
+        # engagement metrics (may be None):
         "view_count": safe_int(e.get("view_count")),
         "like_count": safe_int(e.get("like_count")),
         "comment_count": safe_int(e.get("comment_count")),
@@ -200,10 +185,6 @@ def normalize_user_payload(username: str, raw: Dict[str, Any], max_videos: int) 
         "videos": videos,
     }
 
-
-# ---------------------------
-# Seed file handling
-# ---------------------------
 
 def read_seed_users(seed_path: Path) -> List[str]:
     if not seed_path.exists():
@@ -230,10 +211,6 @@ def read_seed_users(seed_path: Path) -> List[str]:
             out.append(u)
     return out
 
-
-# ---------------------------
-# Main
-# ---------------------------
 
 def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(description="Collect TikTok metadata for seed usernames → JSON output.")

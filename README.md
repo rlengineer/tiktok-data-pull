@@ -6,15 +6,23 @@ A slow-and-strady approach to collecting tiktok metadata
 - Errors are logged, not fatal
 - Slow > blocked
 
+## Requirements
+yt-dlp library
+
 ## General flow
-- Create a seed file
+- <b>STEP 1:</b> Create a seed file
 - - Stored as .txt
-- - One username per row
+- - One username or hashtag per row
 - - Save in seeds/yyyy-mm-dd
-- Run collect_user_metadata.py
-- - Saves the output from the run (metadata for each user) as json in outputs/raw/YYYY-MM-DD
-- Run collect_video_metadata_from_ids.py
+- <b>STEP 2:</b> Run collect_user_metadata.py or collect_hashtag_metadata.py
+- - Uses the output from step 1 
+- - Saves the metadata for each user or hashtag as json in outputs/raw
+- <b>STEP 3:</b> Run collect_video_metadata_from_ids.py
+- - Takes the user or hashtag metadata, extracts the Video IDs, and pulls the metadata for those videos
 - - Saves the output from the run (metadata for each video) as json in outputs/enriched/YYYY-MM-DD
+- <b>STEP 4:</b> Convert enriched JSON to CSV
+- - user_metadata_to_csv.py
+- - video_metadata_to_csv.py
 
 ## Folder structure
 ```
@@ -76,20 +84,18 @@ Follow these steps **in order** each time you run a new snapshot.
 cd ~/Documents/repos/tiktok-metadata-collector
 ```
 
-### 1) Activate the virtual environment
+### 1) Create and activate the virtual environment
 ```bash
+python3 -m venv .venv
+
 source venv/bin/activate
 ```
 
-Confirm dependencies are available:
+Install dependencies inside the venv:
 ```bash
-yt-dlp --version
-which yt-dlp
+python -m pip install -U pip
+python -m pip install yt-dlp
 ```
-
-Expected:
-- yt-dlp prints a version
-- which yt-dlp points to .../venv/bin/yt-dlp
 
 ### 2) Create a new dated seed folder
 Seeds are immutable snapshots. Use one folder per date.
@@ -122,16 +128,16 @@ mkdir -p "outputs/raw/$(date +%F)"
 From the repo root:
 
 ```bash
-python scripts/collect_user_metadata.py \
-  --seed seeds/2026-02-01/travel_brands.txt \
-  --out outputs/raw/2026-02-01 \
-  --max-videos 25 \
-  --sleep 3 \
+python collect_user_metadata.py \
+  --seed ../seeds/2026-02-01/travel_brands.txt \
+  --out ../outputs/raw/2026-02-02 \
+  --max-videos 30 \
+  --sleep 4 \
   --jitter 2
 ```
 
 What this does:
--r eads the seed file
+- reads the seed file
 - collects profile + last N videos
 - waits for set time between users
 - writes one timestamped JSON file
@@ -180,11 +186,11 @@ Fill in the correct file names and run:
 
 ```bash
 python collect_video_metadata_from_ids.py \
-  --input ../outputs/raw/2026-02-01/tiktok_seed_users_20260201_223844.json \
-  --out ../outputs/enriched/2026-02-01 \
+  --input ../outputs/raw/2026-02-02/tiktok_seed_users_20260202_161557.json \
+  --out ../outputs/enriched/2026-02-02 \
   --write-per-video \
   --no-comments \
-  --sleep 6.0 --jitter 3.0 \
+  --sleep 5.0 --jitter 3.0 \
   --max-total-errors 20
 ```
 Note - sleep 6.0 and jitter 3.0 runs about 215/hour, no ERRORs
@@ -198,14 +204,14 @@ pip install pandas
 To run user_metadata_to_csv.py
 ```bash
 python user_metadata_to_csv.py \
-  --in ../outputs/raw/2026-02-01/tiktok_seed_users_20260201_221220.json \
+  --in ../outputs/raw/2026-02-02/tiktok_seed_users_20260202_161557.json \
   --out ../outputs/csv_out/user_data
 ```
 
 To run video_metadata_to_csv.py on batch-style files:
 ```bash
 python video_metadata_to_csv.py \
-  --in ../outputs/enriched/2026-02-01/videos_enriched_20260202_133449.json \
+  --in ../outputs/enriched/2026-02-02/videos_enriched_20260202_185751.json \
   --out ../outputs/csv_out/video_data
 ```
 

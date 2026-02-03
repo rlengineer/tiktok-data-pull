@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
 """
-seed_users_to_user_videos_csv.py
+user_metadata_to_csv.py
 
-Input:  seed-user run JSON shaped like:
-  { run_started_at, ..., results: [ { scraped_at, source, profile:{...}, videos:[...]} , ... ] }
+Purpose:
+Converts user metadata from JSON to CSV format (to reduce storage space)
+Specifically designed to process the ouput from src/collect_user_metadata.py
+
+Input:  
+../outputs/raw/yyyy-mm-dd/tiktok_seed_users_***_***.json
 
 Output:
-  - user_videos_<timestamp>.csv   (one row per video, with user columns attached)
+  - ../outputs/csv_out/user_datauser_videos_<timestamp>.csv 
 
 Timestamp strategy:
-- If run_started_at exists, we parse it and use it for filename.
-- Otherwise we use current local time.
+- If run_started_at exists, script parses it and uses it for filename.
+- Otherwise, it uses current local time.
+
 """
 
 from __future__ import annotations
